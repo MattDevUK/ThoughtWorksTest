@@ -1,0 +1,33 @@
+{
+  "variables": {
+    "local_user": "matt",
+    "remote_user": "matt"
+  },
+  "builders": [{
+    "type": "googlecompute",
+    "account_file": "ThoughtWorks-820392232dfa.json",
+    "project_id": "flash-span-180315",
+    "source_image_family": "ubuntu-1604-lts",
+    "zone": "europe-west1-b",
+    "ssh_username": "{{user `remote_user`}}",
+    "image_name": "thoughtworks-{{timestamp}}",
+    "machine_type": "f1-micro"
+  }],
+  "provisioners": [{
+    "type": "shell",
+    "inline": [
+      "sleep 30",
+      "sudo apt-get update -y"
+    ]
+  },
+  {
+    "type": "file",
+    "source": "/home/{{user `local_user`}}/ThoughtWorks/tw-repo",
+    "destination": "/home/ubuntu/tw-repo"
+  },
+  {
+    "type": "chef-solo",
+    "remote_cookbook_paths": ["/home/ubuntu/tw-repo/cookbooks"],
+    "run_list": ["thoughtworks::default"]
+  }]
+}
