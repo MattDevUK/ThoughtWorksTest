@@ -1,7 +1,7 @@
 {
   "variables": {
     "local_user": "matt",
-    "remote_user": "matt"
+    "remote_user": "ubuntu"
   },
   "builders": [{
     "type": "googlecompute",
@@ -23,11 +23,18 @@
   {
     "type": "file",
     "source": "/home/{{user `local_user`}}/ThoughtWorks/tw-repo",
-    "destination": "/home/ubuntu/tw-repo"
+    "destination": "/tmp/tw-repo"
+  },
+  {
+    "type": "shell",
+    "inline": [
+      "sudo mv /tmp/tw-repo /home/{{user `remote_user`}}/",
+      "sudo chown -R {{user `remote_user`}}:{{user `remote_user`}} /home/{{user `remote_user`}}/tw-repo/"
+    ]
   },
   {
     "type": "chef-solo",
-    "remote_cookbook_paths": ["/home/ubuntu/tw-repo/cookbooks"],
+    "remote_cookbook_paths": ["/home/{{user `remote_user`}}/tw-repo/cookbooks"],
     "run_list": ["thoughtworks::default"]
   }]
 }

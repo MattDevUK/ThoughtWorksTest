@@ -1,16 +1,20 @@
 #!/bin/sh
 #
 # chkconfig: 2345 50 30
-# description: <%= @appName %> service
 
+if [ true != "$INIT_D_SCRIPT_SOURCED" ] ; then
+  set "$0" "$@"; INIT_D_SCRIPT_SOURCED=true . /lib/init/init-d-script
+fi
 ### BEGIN INIT INFO
 # Provides: <%= @appName %>
 # Description: <%= @appName %> service
-# Required-Start: $network $local_fs
+# Required-Start: $network $local_fs $syslog
+# Default-Start: 2 3 4 5
+# Default-StopΩ 0 1 6 
 ### END INIT INFO
 
-[ -f /etc/rc.d/init.d/functions ] && . /etc/rc.d/init.d/functions
-
+# Author: Matt Hines <matt@matthin.es>
+DESC="Starts and stops <%= @appName %> service"
 NAME=<%= @appName %>
 JAR_HOME=<%= @appHome -%>/$NAME
 PATH_TO_JAR=$JAR_HOME/$NAME.jar

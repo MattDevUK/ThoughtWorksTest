@@ -1,6 +1,6 @@
 variable "image_name" { 
   type = "string"
-  default = "thoughtworks-1505923612"
+  default = "thoughtworks-1505962355"
 }
 
 # Set provider
@@ -60,11 +60,21 @@ resource "google_compute_instance" "front-end" {
     newsfeeds_ip = "${google_compute_instance.newsfeed.network_interface.0.address}"
   }
 
-#  provisioner "remote-exec" {
-#    in"echo '{\"thoughtworks\": {\"service_name\": \"front-end\"}}' > /tmp/run_list.json",
-#      chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/tmp/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
-#    ]
-#  }
+  connection {
+    user = "ubuntu"
+    private_key = "${file("/home/matt/.ssh/id_rsa")}"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/run_list.json"
+    content = "{\"thoughtworks\": {\"service_name\": \"front-end\"}}"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo chown -R ubuntu:ubuntu /home/ubuntu/tw-repo",
+      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/ubuntu/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
+    ]
+  }
 
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
@@ -106,7 +116,8 @@ resource "google_compute_instance" "quotes" {
   }
   provisioner "remote-exec" {
     inline = [
-      "chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/ubuntu/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
+      "sudo chown -R ubuntu:ubuntu /home/ubuntu/tw-repo",
+      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/ubuntu/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
     ]
   }
 }
@@ -129,12 +140,21 @@ resource "google_compute_instance" "newsfeed" {
     access_config {}
   }
 
-#  provisioner "remote-exec" {
-#    inline = [
-#      "echo '{\"thoughtworks\": {\"service_name\": \"newsfeed\"}}' > /tmp/run_list.json",
-#      chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/tmp/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
-#    ]
-#  }
+  connection {
+    user = "ubuntu"
+    private_key = "${file("/home/matt/.ssh/id_rsa")}"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/run_list.json"
+    content = "{\"thoughtworks\": {\"service_name\": \"newsfeed\"}}"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo chown -R ubuntu:ubuntu /home/ubuntu/tw-repo",
+      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/ubuntu/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
+    ]
+  }
 
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]

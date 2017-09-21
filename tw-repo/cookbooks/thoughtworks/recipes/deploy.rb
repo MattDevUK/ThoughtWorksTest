@@ -17,30 +17,31 @@ directory "#{appHome}/#{service_name}" do
   recursive true
 end
 
-git "#{Chef::Config['file_ca]che_path']}/infra-problem" do
+git "#{Chef::Config['file_cache_path']}/infra-problem" do
   repository "https://github.com/ThoughtWorksInc/infra-problem"
   action :sync
-  notifies :run,'execute[make_libs]'
-  notifies :run, 'execute[make_clean]'
+  notifies :run,'execute[make_libs]', :immediately
 end
 
 execute "make_libs" do
   command "make libs"
-  cwd "/home/matt/infra-problem"
+  cwd "#{Chef::Config['file_cache_path']}/infra-problem"
   action :nothing
+  notifies :run, 'execute[make_clean]', :immediately
 end
 
 execute "make_clean" do
   command "make clean all"
-  cwd "/home/matt/infra-problem"
+  cwd "#{Chef::Config['file_cache_path']}/infra-problem"
   action :nothing
+  notifies :create, "remote_file[Deploy #{service_name}]"
 end
 
 remote_file "Deploy #{service_name}" do
   path "#{appHome}/#{service_name}/#{service_name}.jar"
   source "file:///#{Chef::Config['file_cache_path']}/infra-problem/build/#{service_name}.jar"
   not_if { File.exists?("#{appHome}/#{service_name}/#{service_name}.jar") }
-  action :create
+  action :nothing
   notifies :restart, "service[#{service_name}]", :delayed
 end
 
@@ -50,10 +51,11 @@ end
 #   user "matt"
 #   action :nothing
 # end
-if service_name == "front-end" do
+
+if service_name == "front-end"
   execute "serve" do
-    command "./serve.py"
-    cwd "#{appHome}/front-end/public"
+    command "./serve.py > serve.log 2>&1 &"
+    cwd "#{Chef::Config['file_cache_path']}/infra-problem/front-end/public"
   end
 end
 
