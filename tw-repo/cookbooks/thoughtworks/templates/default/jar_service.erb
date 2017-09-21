@@ -1,74 +1,74 @@
 #!/bin/sh
-#
-# chkconfig: 2345 50 30
 
 if [ true != "$INIT_D_SCRIPT_SOURCED" ] ; then
   set "$0" "$@"; INIT_D_SCRIPT_SOURCED=true . /lib/init/init-d-script
 fi
+
 ### BEGIN INIT INFO
 # Provides: <%= @appName %>
 # Description: <%= @appName %> service
 # Required-Start: $network $local_fs $syslog
 # Default-Start: 2 3 4 5
-# Default-StopΩ 0 1 6 
+# Default-Stop: 0 1 6 
 ### END INIT INFO
 
 # Author: Matt Hines <matt@matthin.es>
+
 DESC="Starts and stops <%= @appName %> service"
+
 NAME=<%= @appName %>
 JAR_HOME=<%= @appHome -%>/$NAME
 PATH_TO_JAR=$JAR_HOME/$NAME.jar
 export APP_PORT=8080
 <% if @appName == "front-end" %>
 export STATIC_URL=localhost
-export QUOTE_SERVICE_URL=http://10.132.0.2:8080
-export NEWSFEED_SERVICE_URL=http://10.132.0.3:8080
-export NEWSFEED_SERVICE_TOKEN="T1&eWbYXNWG1w1^YGKDPxAWJ@^et^&kX"
+export QUOTE_SERVICE_URL=http://<%= node['thoughtworks']['quotes_ip'] %>:8080
+export NEWSFEED_SERVICE_URL=http://<%= node['thoughtworks']['newsfeed_ip'] %>:8080
+export NEWSFEED_SERVICE_TOKEN="<%= node['thoughtworks']['newsfeed_api_token'] %>"
 <% end %>
-ARGUMENTS=""
+
+PIDFILE=/var/run/$NAME.pid
+LOGFILE=/var/log/$NAME.log
 
 RETVAL=0
 
-getpid() {
-    PIDGET=$(ps -ef | grep $PATH_TO_JAR | grep -v grep | awk '{print $2}')
-}
-
 start() {
-    getpid
-    if [[ $PIDGET -gt 0 ]]; then
-        echo "$NAME Service already running ..."
+    if [ -f $PIDFILE ] && kill -0 $(cat $PIDFILE); then
+        echo "$NAME service already running ..."
     else
-        echo "Starting $NAME Service ..."
-        cd $JAR_HOME && java $JAR_ARGS -jar $PATH_TO_JAR $ARGUMENTS >>/dev/null 2>&1 &
+        echo "Starting $NAME service ..."
+        cd $JAR_HOME && java -jar $PATH_TO_JAR >> $LOGFILE 2>&1 &
+        echo $! > $PIDFILE
+        echo "$NAME service started ..."
     fi
 }
 
 stop() {
-    getpid
-    if [[ $PIDGET -gt 0 ]]; then
-      echo "Stopping $NAME service ($PIDGET) ..."
-      /bin/kill -9 $PIDGET
+    if [ -f $PIDFILE ]; then
+      PID=$(cat $PIDFILE);
+      echo "Stopping $NAME service ($PID) ..."
+      kill $PID
+      echo "$NAME service stopped ..."
+      rm $PIDFILE
     else
-       echo "$NAME not running"
+       echo "$NAME service is not running ..."
     fi
 }
 
 restart() {
-    echo "Restarting $NAME: "
     stop
     sleep 3
     start
 }
 
 status() {
-    getpid
-    if [[ $PIDGET -gt 0 ]]; then
-        echo "$NAME running as pid $PIDGET"
+    if [ -f $PIDFILE ]; then
+        echo "$NAME service running with pid: $(cat $PIDFILE); ..."
         return 0
+    else
+        echo "$NAME service not running ..."
+        return 3
     fi
-
-    echo "$NAME not running"
-    return 3
 }
 
 case "$1" in

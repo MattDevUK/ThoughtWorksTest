@@ -1,12 +1,32 @@
+variable "credentials_file" {
+  type = "string"
+  default = "./ThoughtWorks-820392232dfa.json"
+}
+variable "project_id" {
+  type = "string"
+  default = "flash-span-180315"
+}
+variable "remote_user" {
+  type = "string"
+  default = "ubuntu"
+}
 variable "image_name" { 
   type = "string"
-  default = "thoughtworks-1505962355"
 }
+variable "private_ssh_key_file" {
+  type = "string"
+  default = "~/.ssh/id_rsa"
+}
+variable "machine_type" {
+  type = "string"
+  default = "f1-micro"
+}
+variable "newsfeed_api_token" {}
 
 # Set provider
 provider "google" {
-	credentials = "${file("ThoughtWorks-820392232dfa.json")}"
-	project     = "flash-span-180315"
+	credentials = "${file("${var.credentials_file}")}"
+	project     = "${var.project_id}"
 	region      = "europe-west1"
 }
 
@@ -36,7 +56,7 @@ resource "google_compute_firewall" "front-end" {
 # Create the front-end instance
 resource "google_compute_instance" "front-end" {
   name         = "front-end"
-  machine_type = "f1-micro"
+  machine_type = "${var.machine_type}"
   zone         = "europe-west1-b"
 
   boot_disk {
@@ -55,24 +75,19 @@ resource "google_compute_instance" "front-end" {
 
   tags = ["front-end"]
 
-  metadata {
-    quotes_ip = "${google_compute_instance.quotes.network_interface.0.address}"
-    newsfeeds_ip = "${google_compute_instance.newsfeed.network_interface.0.address}"
-  }
-
   connection {
-    user = "ubuntu"
-    private_key = "${file("/home/matt/.ssh/id_rsa")}"
+    user = "${var.remote_user}"
+    private_key = "${file("${var.private_ssh_key_file}")}"
   }
 
   provisioner "file" {
     destination = "/tmp/run_list.json"
-    content = "{\"thoughtworks\": {\"service_name\": \"front-end\"}}"
+    content = "{\"thoughtworks\": {\"service_name\": \"front-end\", \"quotes_ip\": \"${google_compute_instance.quotes.network_interface.0.address}\", \"newsfeed_ip\": \"${google_compute_instance.newsfeed.network_interface.0.address}\", \"newsfeed_api_token\": \"${var.newsfeed_api_token}\"}}"
   }
   provisioner "remote-exec" {
     inline = [
-      "sudo chown -R ubuntu:ubuntu /home/ubuntu/tw-repo",
-      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/ubuntu/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
+      "sudo chown -R u${var.remote_user}:${var.remote_user} /home/${var.remote_user}/tw-repo",
+      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/${var.remote_user}/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
     ]
   }
 
@@ -81,12 +96,13 @@ resource "google_compute_instance" "front-end" {
   }
 
   depends_on = ["google_compute_address.tw-services","google_compute_firewall.front-end","google_compute_instance.quotes","google_compute_instance.newsfeed"]
+
 }
 
 # Create Quotes Instance
 resource "google_compute_instance" "quotes" {
   name         = "quotes"
-  machine_type = "f1-micro"
+  machine_type = "${var.machine_type}"
   zone         = "europe-west1-b"
 
   boot_disk {
@@ -106,8 +122,8 @@ resource "google_compute_instance" "quotes" {
   }
   
   connection {
-    user = "ubuntu"
-    private_key = "${file("/home/matt/.ssh/id_rsa")}"
+    user = "${var.remote_user}"
+    private_key = "${file("${var.private_ssh_key_file}")}"
   }
 
   provisioner "file" {
@@ -116,8 +132,8 @@ resource "google_compute_instance" "quotes" {
   }
   provisioner "remote-exec" {
     inline = [
-      "sudo chown -R ubuntu:ubuntu /home/ubuntu/tw-repo",
-      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/ubuntu/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
+      "sudo chown -R ${var.remote_user}:${var.remote_user} /home/${var.remote_user}/tw-repo",
+      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/${var.remote_user}/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
     ]
   }
 }
@@ -125,7 +141,7 @@ resource "google_compute_instance" "quotes" {
 # Create Newsfeed Instance
 resource "google_compute_instance" "newsfeed" {
   name         = "newsfeed"
-  machine_type = "f1-micro"
+  machine_type = "${var.machine_type}"
   zone         = "europe-west1-b"
 
   boot_disk {
@@ -141,8 +157,8 @@ resource "google_compute_instance" "newsfeed" {
   }
 
   connection {
-    user = "ubuntu"
-    private_key = "${file("/home/matt/.ssh/id_rsa")}"
+    user = "${var.remote_user}"
+    private_key = "${file("${var.private_ssh_key_file}")}"
   }
 
   provisioner "file" {
@@ -151,12 +167,31 @@ resource "google_compute_instance" "newsfeed" {
   }
   provisioner "remote-exec" {
     inline = [
-      "sudo chown -R ubuntu:ubuntu /home/ubuntu/tw-repo",
-      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/ubuntu/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
+      "sudo chown -R ${var.remote_user}:${var.remote_user} /home/${var.remote_user}/tw-repo",
+      "sudo chef-client -j /tmp/run_list.json -z --config-option cookbook_path=/home/${var.remote_user}/tw-repo/cookbooks -r 'recipe[thoughtworks::deploy]'"
     ]
   }
 
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
   }
+}
+
+output "front-end-public-ip" {
+  value = "${google_compute_address.tw-services.address}:8080"
+}
+output "front-end-private-ip" {
+  value = "${google_compute_instance.front-end.network_interface.0.address}"
+}
+output "quotes-public-ip" {
+  value = "${google_compute_instance.quotes.network_interface.0.access_config.0.assigned_nat_ip}"
+}
+output "quotes-private-ip" {
+  value = "${google_compute_instance.quotes.network_interface.0.address}"
+}
+output "newsfeed-public-ip" {
+  value = "${google_compute_instance.newsfeed.network_interface.0.access_config.0.assigned_nat_ip}"
+}
+output "newsfeed-private-ip" {
+  value = "${google_compute_instance.newsfeed.network_interface.0.address}"
 }

@@ -1,17 +1,20 @@
 {
   "variables": {
-    "local_user": "matt",
-    "remote_user": "ubuntu"
+    "chef_repo_path": "./tw-repo",
+    "remote_user": "ubuntu",
+    "account_file_path": "./ThoughtWorks-820392232dfa.json",
+    "machine_type": "f1-micro",
+    "project_id": "flash-span-180315"
   },
   "builders": [{
     "type": "googlecompute",
-    "account_file": "ThoughtWorks-820392232dfa.json",
-    "project_id": "flash-span-180315",
+    "account_file": "{{user  `account_file_path`}}",
+    "project_id": "{{user `project_id`}}",
     "source_image_family": "ubuntu-1604-lts",
     "zone": "europe-west1-b",
     "ssh_username": "{{user `remote_user`}}",
     "image_name": "thoughtworks-{{timestamp}}",
-    "machine_type": "f1-micro"
+    "machine_type": "{{user `machine_type`}}"
   }],
   "provisioners": [{
     "type": "shell",
@@ -22,7 +25,7 @@
   },
   {
     "type": "file",
-    "source": "/home/{{user `local_user`}}/ThoughtWorks/tw-repo",
+    "source": "{{user `chef_repo_path`}}",
     "destination": "/tmp/tw-repo"
   },
   {

@@ -40,7 +40,6 @@ end
 remote_file "Deploy #{service_name}" do
   path "#{appHome}/#{service_name}/#{service_name}.jar"
   source "file:///#{Chef::Config['file_cache_path']}/infra-problem/build/#{service_name}.jar"
-  not_if { File.exists?("#{appHome}/#{service_name}/#{service_name}.jar") }
   action :nothing
   notifies :restart, "service[#{service_name}]", :delayed
 end
