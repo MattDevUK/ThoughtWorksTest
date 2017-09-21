@@ -2,9 +2,9 @@
   "variables": {
     "chef_repo_path": "./tw-repo",
     "remote_user": "ubuntu",
-    "account_file_path": "./ThoughtWorks-820392232dfa.json",
+    "account_file_path": "./ThoughtWorks-Service.json",
     "machine_type": "f1-micro",
-    "project_id": "flash-span-180315"
+    "project_id": ""
   },
   "builders": [{
     "type": "googlecompute",

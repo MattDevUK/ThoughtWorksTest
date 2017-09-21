@@ -1,10 +1,9 @@
 variable "credentials_file" {
   type = "string"
-  default = "./ThoughtWorks-820392232dfa.json"
+  default = "./ThoughtWorks-Service.json"
 }
 variable "project_id" {
   type = "string"
-  default = "flash-span-180315"
 }
 variable "remote_user" {
   type = "string"
